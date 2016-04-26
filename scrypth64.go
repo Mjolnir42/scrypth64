@@ -272,6 +272,7 @@ func parameterFromMCF(mcf string) (*Parameter, error) {
 		// individual parameters have to be of the form key=value
 		opts := strings.Split(param, `=`)
 		if len(opts) != 2 {
+			err = fmt.Errorf("Invalid format for parameter: %s", param)
 			goto fail
 		}
 		switch opts[0] {
