@@ -127,7 +127,8 @@ func Verify(password, mcf string) (bool, error) {
 			nop = false
 		}
 	}
-	return result, nil
+	// always return err to unhide errors from computeDigest()
+	return result, err
 
 fail:
 	// this construct silences `nop declared and not used` errors
