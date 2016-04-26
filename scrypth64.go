@@ -302,6 +302,7 @@ func parameterFromMCF(mcf string) (*Parameter, error) {
 			p.SaltLength = uint16(num)
 		default:
 			// unknown parameter
+			err = fmt.Errorf("Unknown parameter: %s", opts[0])
 			goto fail
 		}
 	}
