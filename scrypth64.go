@@ -68,7 +68,7 @@ fail:
 }
 
 // Verify takes a password and a scrypt-h64 string in MCF format and
-// returns true is the password matches the provided digest.
+// returns true if the password matches the provided digest.
 // The result is always false if error != nil.
 func Verify(password, mcf string) (bool, error) {
 	var (
@@ -136,7 +136,7 @@ fail:
 }
 
 // computeDigest calculates a new scrypt digest. Returns nil if there
-// was an error with the entropy source.
+// was an error computing the digest.
 func computeDigest(password string, salt []byte, params *Parameter) ([]byte, error) {
 	var (
 		digest []byte
@@ -160,7 +160,8 @@ func computeDigest(password string, salt []byte, params *Parameter) ([]byte, err
 }
 
 // newSalt reads and returns a new random salt of the length requested
-// in p. Returns nil if err != nil.
+// in p. Returns nil if err != nil, indicating an error with the
+// entropy source.
 func newSalt(p *Parameter) ([]byte, error) {
 	salt := make([]byte, p.SaltLength)
 	if _, err := rand.Read(salt); err != nil {
@@ -226,7 +227,8 @@ func checkParameter(p *Parameter) error {
 	return nil
 }
 
-// fieldsFromMCF slices an MCF string into its fields
+// fieldsFromMCF slices an MCF string into its fields. It performs
+// checks on field count and used identifier.
 func fieldsFromMCF(mcf string) ([]string, error) {
 	// remove leading and possibly trailing field separator
 	mcf = strings.Trim(mcf, `$`)
