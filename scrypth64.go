@@ -26,6 +26,10 @@ import (
 	"golang.org/x/crypto/scrypt"
 )
 
+// Mcf is a custom string type to indicate that the underlying string
+// is subject to specific formatting rules
+type Mcf string
+
 // internal constants
 const (
 	fieldIdentifier = iota
@@ -38,7 +42,7 @@ const (
 // Digest calculates a new scrypt digest and returns it as a scrypt-h64
 // MCF formatted string. If params is nil, DefaultParams are used.
 // Returns an empty string if err != nil.
-func Digest(password string, params *Parameter) (string, error) {
+func Digest(password string, params *Parameter) (Mcf, error) {
 	var (
 		salt, digest []byte
 		err          error
@@ -70,7 +74,7 @@ fail:
 // Verify takes a password and a scrypt-h64 string in MCF format and
 // returns true if the password matches the provided digest.
 // The result is always false if error != nil.
-func Verify(password, mcf string) (bool, error) {
+func Verify(password string, mcf Mcf) (bool, error) {
 	var (
 		p                         *Parameter
 		salt, digest, pass, stunt []byte
@@ -173,8 +177,8 @@ func newSalt(p *Parameter) ([]byte, error) {
 
 // format returns a scrypt-h64 string in MCF. Exported functions must
 // verify params before calling format.
-func format(digest, salt []byte, params *Parameter) string {
-	return fmt.Sprintf(
+func format(digest, salt []byte, params *Parameter) Mcf {
+	return Mcf(fmt.Sprintf(
 		mcfString,
 		params.Iterations,
 		params.BlockSizeFactor,
@@ -183,7 +187,7 @@ func format(digest, salt []byte, params *Parameter) string {
 		params.SaltLength,
 		hash64.StdEncoding.EncodeToString(salt),
 		hash64.StdEncoding.EncodeToString(digest),
-	)
+	))
 }
 
 // checkParameter verifies *Parameter for valid values and replaces
@@ -230,12 +234,16 @@ func checkParameter(p *Parameter) error {
 
 // fieldsFromMCF slices an MCF string into its fields. It performs
 // checks on field count and used identifier.
-func fieldsFromMCF(mcf string) ([]string, error) {
+func fieldsFromMCF(mcf Mcf) ([]string, error) {
+	var (
+		sMcf   string
+		fields []string
+	)
 	// remove leading and possibly trailing field separator
-	mcf = strings.Trim(mcf, `$`)
+	sMcf = strings.Trim(string(mcf), `$`)
 
 	// specification requires all 4 fields to be present
-	fields := strings.Split(mcf, `$`)
+	fields = strings.Split(sMcf, `$`)
 	if len(fields) != 4 {
 		return nil, fmt.Errorf(
 			"Invalid MCF string with only %d fields",
@@ -256,7 +264,7 @@ func fieldsFromMCF(mcf string) ([]string, error) {
 // parameterFromMCF assembles a Parameter struct from the values
 // embedded inside the MCF string. Returns nil if a malformed or
 // otherwise invalid string is passed in.
-func parameterFromMCF(mcf string) (*Parameter, error) {
+func parameterFromMCF(mcf Mcf) (*Parameter, error) {
 	var (
 		err                error
 		num                uint64
@@ -323,7 +331,7 @@ fail:
 }
 
 // saltFromMCF returns the salt field from an MCF string
-func saltFromMCF(mcf string) ([]byte, error) {
+func saltFromMCF(mcf Mcf) ([]byte, error) {
 	var (
 		err    error
 		salt   []byte
@@ -342,7 +350,7 @@ func saltFromMCF(mcf string) ([]byte, error) {
 }
 
 // digestFromMCF returns the digest field of an MCF string
-func digestFromMCF(mcf string) ([]byte, error) {
+func digestFromMCF(mcf Mcf) ([]byte, error) {
 	var (
 		err    error
 		digest []byte
@@ -358,6 +366,34 @@ func digestFromMCF(mcf string) ([]byte, error) {
 		return nil, err
 	}
 	return digest, nil
+}
+
+// From string takes a string, validate it and returns it as a custom
+// typed Mcf string.
+func (m Mcf) FromString(s string) (res Mcf, err error) {
+	// err+res declared as part of return types
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Not an scrypt-h64 string")
+		}
+	}()
+
+	if _, err = parameterFromMCF(Mcf(s)); err != nil {
+		goto fail
+	}
+	if _, err = saltFromMCF(Mcf(s)); err != nil {
+		goto fail
+	}
+	if _, err = digestFromMCF(Mcf(s)); err != nil {
+		goto fail
+	}
+
+	res = Mcf(s)
+	return res, nil
+
+fail:
+	res = Mcf("")
+	return res, err
 }
 
 // vim: ts=4 sw=4 sts=4 noet fenc=utf-8 ffs=unix
