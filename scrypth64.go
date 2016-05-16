@@ -30,6 +30,10 @@ import (
 // is subject to specific formatting rules
 type Mcf string
 
+func (m Mcf) String() string {
+	return string(m)
+}
+
 // internal constants
 const (
 	fieldIdentifier = iota
