@@ -374,7 +374,7 @@ func digestFromMCF(mcf Mcf) ([]byte, error) {
 
 // FromString takes a string, validates it and returns it as a custom
 // typed Mcf string.
-func (m Mcf) FromString(s string) (res Mcf, err error) {
+func FromString(s string) (res Mcf, err error) {
 	// err+res declared as part of return types
 	defer func() {
 		if r := recover(); r != nil {
